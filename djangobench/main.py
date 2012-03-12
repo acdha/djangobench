@@ -16,7 +16,8 @@ __version__ = '0.9'
 
 DEFAULT_BENCMARK_DIR = Path(__file__).parent.child('benchmarks').absolute()
 
-def run_benchmarks(control, experiment, benchmark_dir, benchmarks, trials, vcs=None, record_dir=None, profile_dir=None, continue_on_error=False):
+def run_benchmarks(control, experiment, benchmark_dir, benchmarks, trials, vcs=None, record_dir=None, profile_dir=None, continue_on_error=False,
+                   python_executable=None):
     if benchmarks:
         print "Running benchmarks: %s" % " ".join(benchmarks)
     else:
@@ -57,9 +58,11 @@ def run_benchmarks(control, experiment, benchmark_dir, benchmarks, trials, vcs=N
                 experiment_env['DJANGOBENCH_PROFILE_FILE'] = Path(profile_dir, "exp-%s" % benchmark.name)
             try:
                 if vcs: switch_to_branch(vcs, control)
-                control_data = run_benchmark(benchmark, trials, control_env)
+                control_data = run_benchmark(benchmark, trials, control_env,
+                                             python_executable=python_executable)
                 if vcs: switch_to_branch(vcs, experiment)
-                experiment_data = run_benchmark(benchmark, trials, experiment_env)
+                experiment_data = run_benchmark(benchmark, trials, experiment_env,
+                                                python_executable=python_executable)
             except SkipBenchmark, reason:
                 print "Skipped: %s\n" % reason
                 continue
@@ -99,7 +102,7 @@ def discover_benchmarks(benchmark_dir):
 class SkipBenchmark(Exception):
     pass
 
-def run_benchmark(benchmark, trials, env):
+def run_benchmark(benchmark, trials, env, python_executable=None):
     """
     Similar to perf.MeasureGeneric, but modified a bit for our purposes.
     """
@@ -107,7 +110,12 @@ def run_benchmark(benchmark, trials, env):
     # re-generate fresh ones. This makes sure we're measuring as little of
     # Python's startup time as possible.
     perf.RemovePycs()
-    command = [sys.executable, '%s/benchmark.py' % benchmark]
+
+    if python_executable is None:
+        python_executable = sys.executable
+
+    # We'll split python_executable to allow values like 'coverage run'
+    command = python_executable.split() + ['%s/benchmark.py' % benchmark]
     out, _, _ = perf.CallAndCaptureOutput(command + ['-t', 1], env, track_memory=False, inherit_env=[])
     if out.startswith('SKIP:'):
         raise SkipBenchmark(out.replace('SKIP:', '').strip())
@@ -297,6 +305,12 @@ def main():
         action = 'store_true',
         help = 'Continue with the remaining benchmarks if any fail',
     )
+    parser.add_argument(
+        '--python-executable',
+        metavar = 'PATH',
+        default = sys.executable,
+        help = ('Python binary to run tests with. Default = %(default)s'),
+    )
 
     args = parser.parse_args()
     run_benchmarks(
@@ -308,7 +322,8 @@ def main():
         vcs = args.vcs,
         record_dir = args.record,
         profile_dir = args.profile_dir,
-        continue_on_error = args.continue_on_error
+        continue_on_error = args.continue_on_error,
+        python_executable = args.python_executable
     )
 
 if __name__ == '__main__':
