@@ -11,10 +11,17 @@ try:
 except ImportError:
     import profile
 
-benchmark_parser = argparse.ArgumentParser()
-benchmark_parser.add_argument('-t', '--trials', type=int, default=100)
 
-def run_benchmark(benchmark, syncdb=True, setup=None, trials=None, handle_argv=True, meta={}):
+class SkipBenchmark(Exception):
+    pass
+
+
+benchmark_parser = argparse.ArgumentParser()
+benchmark_parser.add_argument('--trials', type=int, default=0)
+benchmark_parser.add_argument('--max-time', type=float, default=0.3)
+
+
+def run_benchmark(benchmark, syncdb=True, setup=None, trials=0, max_time=0, handle_argv=True, meta={}):
     """
     Run a benchmark a few times and report the results.
 
@@ -50,6 +57,7 @@ def run_benchmark(benchmark, syncdb=True, setup=None, trials=None, handle_argv=T
     if handle_argv:
         args = benchmark_parser.parse_args()
         trials = trials or args.trials
+        max_time = max_time or args.max_time
 
     print_benchmark_header(benchmark, meta)
 
@@ -60,21 +68,36 @@ def run_benchmark(benchmark, syncdb=True, setup=None, trials=None, handle_argv=T
     if setup:
         setup()
 
-    for x in xrange(trials):
+    profile_file = os.environ.get('DJANGOBENCH_PROFILE_FILE', None)
+
+    trial_limited = trials > 0
+
+    while True:
         start = time_f()
-        profile_file = os.environ.get('DJANGOBENCH_PROFILE_FILE', None)
+
         if profile_file is not None:
             loc = locals().copy()
             profile.runctx('benchmark_result = benchmark()', globals(), loc, profile_file)
             benchmark_result = loc['benchmark_result']
         else:
             benchmark_result = benchmark()
-        if benchmark_result is not None:
-            print benchmark_result
-        else:
-            print time_f() - start
 
-def run_comparison_benchmark(benchmark_a, benchmark_b, syncdb=True, setup=None, trials=None, handle_argv=True, meta={}):
+        elapsed = benchmark_result or time_f() - start
+
+        print elapsed
+
+        if trial_limited:
+            trials -= 1
+            if trials < 1:
+                break
+        else:
+            max_time -= elapsed
+            if max_time <= 0:
+                break
+
+
+def run_comparison_benchmark(benchmark_a, benchmark_b, syncdb=True, setup=None,
+                             trials=None, max_time=None, handle_argv=True, meta={}):
     """
     Benchmark the difference between two functions.
 
@@ -94,6 +117,7 @@ def run_comparison_benchmark(benchmark_a, benchmark_b, syncdb=True, setup=None, 
     if handle_argv:
         args = benchmark_parser.parse_args()
         trials = trials or args.trials
+        max_time = max_time or args.max_time
 
     print_benchmark_header(benchmark_a, meta)
 
@@ -104,7 +128,9 @@ def run_comparison_benchmark(benchmark_a, benchmark_b, syncdb=True, setup=None, 
     if setup:
         setup()
 
-    for x in xrange(trials):
+    trial_limited = trials > 0
+
+    while True:
         start_a = time_f()
         result_a = benchmark_a()
         result_a = result_a or time_f() - start_a
@@ -114,6 +140,16 @@ def run_comparison_benchmark(benchmark_a, benchmark_b, syncdb=True, setup=None, 
         result_b = result_b or time_f() - start_b
 
         print result_a - result_b
+
+        if trial_limited:
+            trials -= 1
+            if trials < 1:
+                break
+        else:
+            max_time -= min(result_a, result_b)
+            if max_time <= 0:
+                break
+
 
 def print_benchmark_header(benchmark, meta):
     if 'title' not in map(str.lower, meta.keys()):

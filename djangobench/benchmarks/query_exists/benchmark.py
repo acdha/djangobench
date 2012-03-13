@@ -1,3 +1,5 @@
+import sys
+
 from djangobench.utils import run_benchmark
 from query_exists.models import Book
 
@@ -17,3 +19,4 @@ if hasattr(Book.objects, 'exists'):
     )
 else:
     print "SKIP: Django before 1.2 doesn't have QuerySet.exists()"
+    sys.exit(1)

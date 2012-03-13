@@ -88,6 +88,7 @@ try:
 except ImportError:
     win32api = None
 
+from djangobench.utils import SkipBenchmark
 
 info = logging.info
 
@@ -923,6 +924,7 @@ def CompareMultipleRuns(base_times, changed_times, options):
         point per run.
     """
     assert len(base_times) == len(changed_times)
+
     if len(base_times) == 1:
         # With only one data point, we can't do any of the interesting stats
         # below.
@@ -1023,6 +1025,9 @@ def CallAndCaptureOutput(command, env=None, track_memory=False, inherit_env=[]):
         future = MemoryUsageFuture(subproc.pid)
     stdout, stderr = subproc.communicate()
     if subproc.returncode != 0:
+        for i in stdout.splitlines():
+            if i.startswith('SKIP:'):
+                raise SkipBenchmark(i.replace('SKIP:', '').strip())
         raise RuntimeError("Benchmark died: " + stderr)
     if track_memory:
         mem_usage = future.GetMemoryUsage()

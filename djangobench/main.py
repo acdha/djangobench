@@ -10,6 +10,7 @@ import email
 import simplejson
 import sys
 from djangobench import perf
+from djangobench.utils import SkipBenchmark
 from unipath import DIRS, FSPath as Path
 
 __version__ = '0.9'
@@ -57,11 +58,15 @@ def run_benchmarks(control, experiment, benchmark_dir, benchmarks, trials, vcs=N
                 control_env['DJANGOBENCH_PROFILE_FILE'] = Path(profile_dir, "con-%s" % benchmark.name)
                 experiment_env['DJANGOBENCH_PROFILE_FILE'] = Path(profile_dir, "exp-%s" % benchmark.name)
             try:
-                if vcs: switch_to_branch(vcs, control)
-                control_data = run_benchmark(benchmark, trials, control_env,
+                if vcs:
+                    switch_to_branch(vcs, control)
+                control_data = run_benchmark(benchmark, control_env,
+                                             max_time=0.5,
                                              python_executable=python_executable)
-                if vcs: switch_to_branch(vcs, experiment)
-                experiment_data = run_benchmark(benchmark, trials, experiment_env,
+                if vcs:
+                    switch_to_branch(vcs, experiment)
+                experiment_data = run_benchmark(benchmark, experiment_env,
+                                                trials=len(control_data.runtimes),
                                                 python_executable=python_executable)
             except SkipBenchmark, reason:
                 print "Skipped: %s\n" % reason
@@ -99,10 +104,7 @@ def discover_benchmarks(benchmark_dir):
         if app.child('benchmark.py').exists() and app.child('settings.py').exists():
             yield app
 
-class SkipBenchmark(Exception):
-    pass
-
-def run_benchmark(benchmark, trials, env, python_executable=None):
+def run_benchmark(benchmark, env, trials=0, max_time=0, python_executable=None, handle_argv=True):
     """
     Similar to perf.MeasureGeneric, but modified a bit for our purposes.
     """
@@ -116,12 +118,10 @@ def run_benchmark(benchmark, trials, env, python_executable=None):
 
     # We'll split python_executable to allow values like 'coverage run'
     command = python_executable.split() + ['%s/benchmark.py' % benchmark]
-    out, _, _ = perf.CallAndCaptureOutput(command + ['-t', 1], env, track_memory=False, inherit_env=[])
-    if out.startswith('SKIP:'):
-        raise SkipBenchmark(out.replace('SKIP:', '').strip())
 
-    # Now do the actual mesurements.
-    output = perf.CallAndCaptureOutput(command + ['-t', str(trials)], env, track_memory=False, inherit_env=[])
+    output = perf.CallAndCaptureOutput(command + ['--trials', str(trials),
+                                                  '--max-time', str(max_time)],
+                                       env, track_memory=False, inherit_env=[])
     stdout, stderr, mem_usage = output
     message = email.message_from_string(stdout)
     data_points = [float(line) for line in message.get_payload().splitlines()]
@@ -266,8 +266,8 @@ def main():
     parser.add_argument(
         '-t', '--trials',
         type = int,
-        default = 50,
-        help = 'Number of times to run each benchmark.'
+        default = 0,
+        help = 'Number of times to run each benchmark (default: automatic for at least .5s duration)'
     )
     parser.add_argument(
         '-r', '--record',
