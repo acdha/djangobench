@@ -237,7 +237,7 @@ def get_django_version(loc, vcs=None):
 
 def switch_to_branch(vcs, branchname):
     if vcs == 'git':
-        cmd = ['git', 'checkout', branchname]
+        cmd = ['git', 'checkout', '--force', branchname]
     elif vcs == 'hg':
         cmd = ['hg', 'update', '-C', branchname]
     else:
