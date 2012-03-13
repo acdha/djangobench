@@ -1,5 +1,6 @@
 from django.template import Template
-from djangobench.utils import run_benchmark
+from benchmark_harness import run_benchmark
+
 
 def benchmark():
     # Just compile the template, no rendering
@@ -25,8 +26,7 @@ def benchmark():
 
 run_benchmark(
     benchmark,
-    syncdb = False,
-    meta = {
+    meta={
         'description': 'Template compilation time.',
     }
 )

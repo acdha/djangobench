@@ -1,10 +1,13 @@
-from djangobench.utils import run_benchmark
+from benchmark_harness import run_benchmark
 from query_all_multifield.models import MultiField
+from djangobench.utils import do_syncdb
+
 
 def benchmark():
     list(MultiField.objects.iterator())
 
 def setup():
+    do_syncdb()
     for i in range(0, 3000):
         kwargs = {}
         for j in range(1, 11):

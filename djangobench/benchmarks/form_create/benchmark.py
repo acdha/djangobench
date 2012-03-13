@@ -1,5 +1,8 @@
 from django import forms
-from djangobench.utils import run_benchmark
+from benchmark_harness import run_benchmark
+
+from djangobench.utils import do_syncdb
+
 
 class BookForm(forms.Form):
     title = forms.CharField(max_length=100)
@@ -9,7 +12,7 @@ def benchmark():
 
 run_benchmark(
     benchmark,
-    syncdb = False,
+    setup=do_syncdb,
     meta = {
         'description': 'Time required to instantiate and bind a form.',
     }

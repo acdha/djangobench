@@ -1,12 +1,12 @@
-import os
 import sys
 
 from django.core.handlers.wsgi import WSGIRequest
 from django.shortcuts import render_to_response
 from django.template  import RequestContext
-from django.test.client import Client
 
-from djangobench.utils import run_benchmark
+from benchmark_harness import run_benchmark
+
+from djangobench.utils import do_syncdb
 
 
 def make_request():
@@ -32,11 +32,10 @@ def benchmark():
                        {'numbers': range(0, 200)},
                        context_instance=RequestContext(req_object))
 
-
 run_benchmark(
     benchmark,
-    syncdb = False,
-    meta = {
+    setup=do_syncdb,
+    meta={
         'description': 'Render a l10n intensive template.',
     }
 )

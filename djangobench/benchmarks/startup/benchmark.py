@@ -1,6 +1,6 @@
 # XXX FIXME - has to spawn a new process to measure load time
 
-from djangobench.utils import run_benchmark
+from benchmark_harness import run_benchmark
 
 def benchmark():
     # Make sure the models and settings are loaded, then we're done. Calling
@@ -10,8 +10,6 @@ def benchmark():
 
 run_benchmark(
     benchmark,
-    syncdb = False,
-    trials = 1,
     meta = {
         'description': 'Startup time for a simple app.',
     }

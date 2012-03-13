@@ -1,5 +1,5 @@
 from django.core.urlresolvers import resolve
-from djangobench.utils import run_benchmark
+from benchmark_harness import run_benchmark
 
 def benchmark():
     resolve('/basic/')

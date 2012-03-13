@@ -1,5 +1,7 @@
-from djangobench.utils import run_benchmark
+from benchmark_harness import run_benchmark
 from query_exists.models import Book
+from djangobench.utils import do_syncdb
+
 
 def benchmark():
     #Checking for object that exists
@@ -11,6 +13,7 @@ def benchmark():
 if hasattr(Book.objects, 'exists'):
     run_benchmark(
         benchmark,
+        setup=do_syncdb,
         meta = {
             'description': 'A Model.objects.exists() call for both existing and non-existing objects.'
         }

@@ -1,5 +1,5 @@
 ﻿from django.core.urlresolvers import reverse
-from djangobench.utils import run_benchmark
+from benchmark_harness import run_benchmark
 
 def benchmark():
     reverse('url_resolve.views.basic')

@@ -1,6 +1,5 @@
-import os
 from django.shortcuts import render_to_response
-from djangobench.utils import run_benchmark
+from benchmark_harness import run_benchmark
 
 #set up some vars
 objects1 = [object(), object(), object(), object(), object()]
@@ -15,6 +14,7 @@ SCRIPT_CONTENT_URL = '/some/prefix'
 WEBSITE_DOMAIN = 'http://www.somedomain.com'
 SHOW_ALT_HEADER = 'True'
 
+
 def benchmark():
     context = {
         'objects1': objects1,
@@ -22,8 +22,8 @@ def benchmark():
         'object1': object1,
         'object2': object2,
         'object3': object3,
-        'num1' : num1,
-        'num2' : num2,
+        'num1': num1,
+        'num2': num2,
         'boolean1': boolean1,
         'SCRIPT_CONTENT_URL': SCRIPT_CONTENT_URL,
         'WEBSITE_DOMAIN': WEBSITE_DOMAIN,
@@ -31,10 +31,10 @@ def benchmark():
     }
     render_to_response('permalink.html', context)
 
+
 run_benchmark(
     benchmark,
-    syncdb = False,
-    meta = {
+    meta={
         'description': ('Render a somewhat complex, fairly typical template '
                         '(including inheritance, reverse URL resolution, etc.).'),
     }
