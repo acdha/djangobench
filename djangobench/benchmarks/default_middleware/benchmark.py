@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 from django.test.client import Client, FakePayload
 from django.conf import global_settings
 from django.conf import settings
